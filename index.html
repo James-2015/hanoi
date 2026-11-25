@@ -1,181 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>汉诺塔 · 拖拽版 · 15盘适配（修复B柱误判）</title>
-    <style>
-        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-        html, body { overscroll-behavior: none; overflow: hidden; height: 100%; }
-        body {
-            background: #f7f3e9;
-            display: flex; justify-content: center; align-items: center;
-            min-height: 100vh;
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            margin: 0; padding: 16px;
-        }
-        .game-wrapper {
-            background: #e7dfd1;
-            border-radius: 48px 48px 32px 32px;
-            padding: 24px 32px 32px;
-            box-shadow: 0 12px 24px rgba(0,0,0,0.15), inset 0 0 0 1px #fff8ed;
-            position: relative;
-        }
-        canvas {
-            display: block; margin: 0 auto;
-            width: 100%; max-width: 800px; height: auto;
-            background: #fdfaf4; border-radius: 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            cursor: grab; touch-action: none; -webkit-user-drag: none;
-        }
-        canvas:active { cursor: grabbing; }
-        .info-panel {
-            display: flex; flex-wrap: wrap; justify-content: space-between;
-            align-items: center; margin-top: 18px; padding: 0 8px;
-            font-weight: 500; color: #3e2c1b; gap: 16px;
-        }
-        .move-counter {
-            background: #f0e7db; padding: 8px 20px; border-radius: 40px;
-            font-size: 1.2rem; box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
-            white-space: nowrap;
-        }
-        .move-counter span { font-weight: 700; color: #a5582c; margin-left: 6px; }
-        .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
-        .slider-group {
-            display: flex; align-items: center; gap: 10px;
-            background: #f0e7db; padding: 6px 18px;
-            border-radius: 40px; white-space: nowrap;
-        }
-        .slider-group label { font-size: 0.95rem; color: #3e2c1b; }
-        .slider-group input { width: 130px; cursor: pointer; accent-color: #d98c4a; }
-        .slider-group span { font-weight: 700; color: #a5582c; min-width: 24px; text-align: center; }
-        button {
-            background: #d6c9b8; border: none; font-size: 1rem; font-weight: 600;
-            padding: 10px 22px; border-radius: 40px; color: #2c1e10;
-            cursor: pointer;
-            box-shadow: 0 2px 0 #b3a48f, 0 4px 8px rgba(0,0,0,0.06);
-            transition: all 0.08s ease; letter-spacing: 0.3px; white-space: nowrap;
-        }
-        button:active { transform: translateY(2px); box-shadow: 0 0 0 #b3a48f, 0 4px 8px rgba(0,0,0,0.06); }
-        .message {
-            font-size: 1rem; color: #7b5a3a; text-align: center;
-            min-height: 28px; padding: 4px 0; margin-top: 6px;
-        }
-        .victory-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.85);
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            z-index: 1000; pointer-events: none; opacity: 0;
-            transition: opacity 0.4s ease;
-        }
-        .victory-overlay.show { opacity: 1; pointer-events: auto; }
-        .victory-text-1 {
-            font-size: 3.5rem; font-weight: 900; color: #ffd93d;
-            text-shadow: 0 0 20px #ffb347, 0 0 40px #ff8c00;
-            text-align: center; margin-bottom: 20px;
-            animation: bounce 1.5s infinite alternate;
-            letter-spacing: 2px; line-height: 1.3; padding: 0 20px;
-        }
-        .victory-text-2 {
-            font-size: 3rem; font-weight: 900; color: #ff6b6b;
-            text-shadow: 0 0 20px #ff4757, 0 0 40px #ff0000;
-            text-align: center; animation: shake 0.5s infinite alternate;
-            letter-spacing: 2px; line-height: 1.3; padding: 0 20px;
-        }
-        .victory-close {
-            margin-top: 40px; background: #fff; color: #222;
-            padding: 12px 40px; font-size: 1.4rem; border-radius: 60px;
-            cursor: pointer; pointer-events: auto; border: none; font-weight: bold;
-            box-shadow: 0 4px 15px rgba(255,255,255,0.3);
-            transition: transform 0.1s;
-        }
-        .victory-close:active { transform: scale(0.95); }
-        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-15px); } }
-        @keyframes shake { 0% { transform: rotate(-3deg) scale(1.02); } 100% { transform: rotate(3deg) scale(1.02); } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>汉诺塔 · 诊断版</title>
+<style>
+* { box-sizing: border-box; user-select: none; }
+html, body { overscroll-behavior: none; overflow: hidden; height: 100%; }
+body { background: #f7f3e9; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 16px; }
+.game-wrapper { background: #e7dfd1; border-radius: 48px 48px 32px 32px; padding: 24px 32px 32px; box-shadow: 0 12px 24px rgba(0,0,0,0.15); }
+canvas { display: block; margin: 0 auto; width: 100%; max-width: 800px; height: auto; background: #fdfaf4; border-radius: 24px; cursor: grab; touch-action: none; -webkit-user-drag: none; }
+.info-panel { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-top: 18px; padding: 0 8px; font-weight: 500; color: #3e2c1b; gap: 16px; }
+.move-counter { background: #f0e7db; padding: 8px 20px; border-radius: 40px; font-size: 1.2rem; }
+.move-counter span { font-weight: 700; color: #a5582c; margin-left: 6px; }
+.slider-group { display: flex; align-items: center; gap: 10px; background: #f0e7db; padding: 6px 18px; border-radius: 40px; }
+.slider-group input { width: 130px; accent-color: #d98c4a; }
+.slider-group span { font-weight: 700; color: #a5582c; min-width: 24px; text-align: center; }
+button { background: #d6c9b8; border: none; font-size: 1rem; font-weight: 600; padding: 10px 22px; border-radius: 40px; color: #2c1e10; cursor: pointer; box-shadow: 0 2px 0 #b3a48f; }
+.message { font-size: 1rem; color: #7b5a3a; text-align: center; min-height: 28px; padding: 4px 0; margin-top: 6px; }
+.debug-log { background: #111; color: #0f0; font-family: monospace; font-size: 11px; padding: 10px; margin-top: 12px; border-radius: 8px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+</style>
 </head>
 <body>
 <div class="game-wrapper">
     <canvas id="gameCanvas" width="800" height="500" style="touch-action: none;"></canvas>
     <div class="info-panel">
         <div class="move-counter">步数 <span id="moveCount">0</span></div>
-        <div class="controls">
-            <div class="slider-group">
-                <label>圆盘数</label>
-                <input type="range" id="diskSlider" min="1" max="15" value="5" step="1">
-                <span id="diskCountLabel">5</span>
-            </div>
-            <button id="resetBtn">⟲ 新一局</button>
+        <div class="slider-group">
+            <label>圆盘数</label>
+            <input type="range" id="diskSlider" min="1" max="15" value="5" step="1">
+            <span id="diskCountLabel">5</span>
         </div>
+        <button id="resetBtn">⟲ 新一局</button>
     </div>
     <div class="message" id="message"></div>
-</div>
-
-<div id="victoryOverlay" class="victory-overlay">
-    <div class="victory-text-1">你小子竟然做出来了！</div>
-    <div class="victory-text-2">今天必须把你小子大卸八块！</div>
-    <button class="victory-close" id="victoryCloseBtn">再来一局</button>
+    <div class="debug-log" id="debugLog"></div>
 </div>
 
 <script>
 (function() {
-    console.log('[Hanoi] script loaded at', new Date().toISOString());
-
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const moveSpan = document.getElementById('moveCount');
-    const messageDiv = document.getElementById('message');
-    const diskSlider = document.getElementById('diskSlider');
-    const diskCountLabel = document.getElementById('diskCountLabel');
-    const victoryOverlay = document.getElementById('victoryOverlay');
-    const victoryCloseBtn = document.getElementById('victoryCloseBtn');
-
-    let NUM_DISKS = 5;
-    const PEG_NAMES = ['A', 'B', 'C'];
-    const BASE_Y = 430;
-    const PEG_TOP_Y = 100;
-    const PEG_WIDTH = 10;
-    const DISK_HEIGHT = 18;
-    const MIN_DISK_WIDTH = 40;
-    const MAX_DISK_WIDTH = 160;
-
-    const PEG_POSITIONS = [
-        { x: 180, y: BASE_Y },
-        { x: 400, y: BASE_Y },
-        { x: 620, y: BASE_Y }
-    ];
-
-    let pegs = [[], [], []];
-    let moves = 0;
-    let gameWon = false;
-    let draggingDisk = null;
-    let animationFrame = null;
-
-    const BRIGHT_COLORS = [
-        '#FF6B6B', '#FFB347', '#FFD93D', '#6BCB77', '#4D96FF',
-        '#9B59B6', '#FF8FAB', '#00C9A7', '#F9A826', '#E76F51',
-        '#A66CFF', '#2E8B57', '#FF9F1C', '#1E90FF', '#FF69B4'
-    ];
-
-    function getDiskColor(size) { return BRIGHT_COLORS[(size - 1) % BRIGHT_COLORS.length]; }
-    function getDiskWidth(size) {
-        const t = (size - 1) / (NUM_DISKS - 1 || 1);
-        return MIN_DISK_WIDTH + t * (MAX_DISK_WIDTH - MIN_DISK_WIDTH);
+    // ===== 调试日志 =====
+    var debugLog = document.getElementById('debugLog');
+    function log(msg) {
+        var line = '[' + new Date().toISOString().slice(11,23) + '] ' + msg;
+        console.log(line);
+        debugLog.textContent += line + '\n';
+        debugLog.scrollTop = debugLog.scrollHeight;
     }
 
+    log('=== SCRIPT LOADED ===');
+    window.addEventListener('error', function(e) { log('❌ WINDOW ERROR: ' + e.message + ' @ ' + e.filename + ':' + e.lineno); });
+    window.addEventListener('unhandledrejection', function(e) { log('❌ UNHANDLED REJECTION: ' + e.reason); });
+    window.addEventListener('beforeunload', function() { log('⚠️ BEFOREUNLOAD — 页面即将离开'); });
+    window.addEventListener('pagehide', function() { log('⚠️ PAGEHIDE — 页面隐藏'); });
+    window.addEventListener('pageshow', function(e) { log('ℹ️ PAGESHOW — persisted=' + e.persisted); });
+    document.addEventListener('visibilitychange', function() { log('ℹ️ VISIBILITY: ' + document.visibilityState); });
+
+    var canvas = document.getElementById('gameCanvas');
+    var ctx = canvas.getContext('2d');
+    var moveSpan = document.getElementById('moveCount');
+    var messageDiv = document.getElementById('message');
+    var diskSlider = document.getElementById('diskSlider');
+    var diskCountLabel = document.getElementById('diskCountLabel');
+
+    var NUM_DISKS = 5;
+    var PEG_NAMES = ['A', 'B', 'C'];
+    var BASE_Y = 430, PEG_TOP_Y = 100, PEG_WIDTH = 10, DISK_HEIGHT = 18;
+    var MIN_DISK_WIDTH = 40, MAX_DISK_WIDTH = 160;
+    var PEG_POSITIONS = [{x:180,y:BASE_Y},{x:400,y:BASE_Y},{x:620,y:BASE_Y}];
+    var BRIGHT_COLORS = ['#FF6B6B','#FFB347','#FFD93D','#6BCB77','#4D96FF','#9B59B6','#FF8FAB','#00C9A7','#F9A826','#E76F51','#A66CFF','#2E8B57','#FF9F1C','#1E90FF','#FF69B4'];
+
+    var pegs = [[],[],[]];
+    var moves = 0;
+    var gameWon = false;
+    var draggingDisk = null;
+    var initCount = 0;
+
+    function getDiskColor(size) { return BRIGHT_COLORS[(size-1) % BRIGHT_COLORS.length]; }
+    function getDiskWidth(size) { var t = (size-1)/(NUM_DISKS-1||1); return MIN_DISK_WIDTH + t*(MAX_DISK_WIDTH-MIN_DISK_WIDTH); }
+
     function initGame() {
-        console.log('[Hanoi] initGame called at', new Date().toISOString());
-        pegs = [[], [], []];
-        for (let i = NUM_DISKS; i >= 1; i--) pegs[0].push(i);
-        moves = 0;
-        gameWon = false;
-        draggingDisk = null;
-        if (animationFrame) { cancelAnimationFrame(animationFrame); animationFrame = null; }
+        initCount++;
+        log('🔄 initGame #' + initCount + ' — pegs before: ' + JSON.stringify(pegs));
+        pegs = [[],[],[]];
+        for (var i = NUM_DISKS; i >= 1; i--) pegs[0].push(i);
+        moves = 0; gameWon = false; draggingDisk = null;
         updateMoveDisplay();
         messageDiv.textContent = '直接拖动圆盘到目标柱子';
         drawCanvas();
-        victoryOverlay.classList.remove('show');
     }
 
     function updateMoveDisplay() { moveSpan.textContent = moves; }
@@ -183,118 +95,73 @@
     function checkWin() {
         if (pegs[2].length === NUM_DISKS) {
             gameWon = true;
-            messageDiv.textContent = `🎉 恭喜！你用了 ${moves} 步完成！`;
-            victoryOverlay.classList.add('show');
+            messageDiv.textContent = '🎉 恭喜！你用了 ' + moves + ' 步完成！';
+            log('🏆 WIN');
             return true;
         }
         return false;
     }
 
-    function roundRect(x, y, w, h, r) {
+    function roundRect(x,y,w,h,r) {
         ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
+        ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+        ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+        ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+        ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
     }
 
-    function drawDisk(x, y, width, color, isDragging = false) {
-        const height = DISK_HEIGHT;
-        const radius = height / 2;
+    function drawDisk(x,y,width,color,isDragging) {
+        var height = DISK_HEIGHT, radius = height/2;
         ctx.save();
         ctx.shadowColor = isDragging ? 'rgba(255,200,0,0.8)' : 'rgba(0,0,0,0.2)';
         ctx.shadowBlur = isDragging ? 20 : 8;
         ctx.shadowOffsetY = isDragging ? 4 : 3;
         ctx.fillStyle = color;
-        roundRect(x - width / 2, y - height / 2, width, height, radius);
-        ctx.fill();
+        roundRect(x-width/2, y-height/2, width, height, radius); ctx.fill();
         ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-        ctx.lineWidth = 2;
-        roundRect(x - width / 2 + 2, y - height / 2 + 2, width - 4, height - 4, radius-1);
-        ctx.stroke();
-        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-        ctx.lineWidth = 1;
-        roundRect(x - width / 2 + 4, y - height / 2 + 4, width - 8, height - 8, radius-2);
-        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 2;
+        roundRect(x-width/2+2, y-height/2+2, width-4, height-4, radius-1); ctx.stroke();
         ctx.restore();
     }
 
     function drawCanvas() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0,0,canvas.width,canvas.height);
         ctx.fillStyle = '#e3d7c4';
-        ctx.beginPath();
-        ctx.ellipse(400, 480, 380, 28, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        PEG_POSITIONS.forEach((pos, index) => {
-            ctx.fillStyle = '#b09a7a';
-            ctx.shadowColor = 'rgba(0,0,0,0.15)';
-            ctx.shadowBlur = 8; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2;
-            roundRect(pos.x - PEG_WIDTH/2, PEG_TOP_Y, PEG_WIDTH, BASE_Y - PEG_TOP_Y, 4);
-            ctx.fill();
-            ctx.shadowColor = 'transparent';
+        ctx.beginPath(); ctx.ellipse(400,480,380,28,0,0,Math.PI*2); ctx.fill();
+        PEG_POSITIONS.forEach(function(pos, index) {
             ctx.fillStyle = '#8b7355';
-            roundRect(pos.x - PEG_WIDTH/2, PEG_TOP_Y, PEG_WIDTH, BASE_Y - PEG_TOP_Y, 4);
-            ctx.fill();
-            ctx.fillStyle = '#a58e73';
-            roundRect(pos.x - PEG_WIDTH/2 + 2, PEG_TOP_Y + 2, PEG_WIDTH - 4, BASE_Y - PEG_TOP_Y - 4, 3);
-            ctx.fill();
+            roundRect(pos.x-PEG_WIDTH/2, PEG_TOP_Y, PEG_WIDTH, BASE_Y-PEG_TOP_Y, 4); ctx.fill();
             ctx.fillStyle = '#ac8f6e';
-            ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
-            ctx.beginPath();
-            ctx.ellipse(pos.x, BASE_Y + 2, 54, 12, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 6; ctx.shadowOffsetY = 1;
-            ctx.fillStyle = '#c9b39b';
-            ctx.beginPath();
-            ctx.arc(pos.x, PEG_TOP_Y - 4, 8, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowColor = 'transparent';
-            ctx.font = 'bold 20px "Segoe UI", Roboto, sans-serif';
-            ctx.fillStyle = '#4f3d2b';
-            ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-            ctx.textAlign = 'center';
-            ctx.fillText(PEG_NAMES[index], pos.x, BASE_Y + 58);
+            ctx.beginPath(); ctx.ellipse(pos.x, BASE_Y+2, 54, 12, 0, 0, Math.PI*2); ctx.fill();
+            ctx.font = 'bold 20px sans-serif'; ctx.fillStyle = '#4f3d2b'; ctx.textAlign = 'center';
+            ctx.fillText(PEG_NAMES[index], pos.x, BASE_Y+58);
         });
-
-        pegs.forEach((pegDisks, pegIndex) => {
-            const pegX = PEG_POSITIONS[pegIndex].x;
-            pegDisks.forEach((size, diskIndex) => {
+        pegs.forEach(function(pegDisks, pegIndex) {
+            var pegX = PEG_POSITIONS[pegIndex].x;
+            pegDisks.forEach(function(size, diskIndex) {
                 if (draggingDisk && draggingDisk.fromPeg === pegIndex && draggingDisk.diskIndex === diskIndex) return;
-                const y = BASE_Y - 14 - diskIndex * DISK_HEIGHT - DISK_HEIGHT/2;
+                var y = BASE_Y - 14 - diskIndex*DISK_HEIGHT - DISK_HEIGHT/2;
                 drawDisk(pegX, y, getDiskWidth(size), getDiskColor(size), false);
             });
         });
-
         if (draggingDisk) {
-            const disk = draggingDisk;
-            const clampedY = Math.max(PEG_TOP_Y - 10, Math.min(BASE_Y - 10, disk.currentY));
-            drawDisk(disk.currentX, clampedY, getDiskWidth(disk.size), getDiskColor(disk.size), true);
+            drawDisk(draggingDisk.currentX, draggingDisk.currentY, getDiskWidth(draggingDisk.size), getDiskColor(draggingDisk.size), true);
         }
     }
 
     function isPointInDisk(mx, my, pegIndex, diskIndex) {
-        const pegX = PEG_POSITIONS[pegIndex].x;
-        const size = pegs[pegIndex][diskIndex];
-        const y = BASE_Y - 14 - diskIndex * DISK_HEIGHT - DISK_HEIGHT/2;
-        const width = getDiskWidth(size);
-        const height = DISK_HEIGHT;
-        return mx >= pegX - width/2 - 10 && mx <= pegX + width/2 + 10 &&
-               my >= y - height/2 - 10 && my <= y + height/2 + 10;
+        var pegX = PEG_POSITIONS[pegIndex].x;
+        var size = pegs[pegIndex][diskIndex];
+        var y = BASE_Y - 14 - diskIndex*DISK_HEIGHT - DISK_HEIGHT/2;
+        var width = getDiskWidth(size), height = DISK_HEIGHT;
+        return mx >= pegX-width/2-10 && mx <= pegX+width/2+10 && my >= y-height/2-10 && my <= y+height/2+10;
     }
 
     function getDiskAtPosition(mx, my) {
-        for (let p = 0; p < 3; p++) {
-            const pegDisks = pegs[p];
+        for (var p = 0; p < 3; p++) {
+            var pegDisks = pegs[p];
             if (pegDisks.length === 0) continue;
-            const topIndex = pegDisks.length - 1;
+            var topIndex = pegDisks.length - 1;
             if (isPointInDisk(mx, my, p, topIndex)) {
                 return { pegIndex: p, diskIndex: topIndex, size: pegDisks[topIndex] };
             }
@@ -302,20 +169,14 @@
         return null;
     }
 
-    // ✅ 核心修复：优先判断“放回原柱子”，其他柱子阈值 60px
     function getNearestPeg(mx, my, fromPeg) {
-        // 1. 先判断是否还在原柱子附近（水平 70px 内）
-        const fromPos = PEG_POSITIONS[fromPeg];
-        if (Math.abs(mx - fromPos.x) < 70 && my >= PEG_TOP_Y - 30 && my <= BASE_Y + 50) {
-            return fromPeg;
-        }
-        // 2. 再找其他柱子，阈值 60px
-        let bestPeg = -1;
-        let bestDist = Infinity;
-        PEG_POSITIONS.forEach((pos, idx) => {
+        var fromPos = PEG_POSITIONS[fromPeg];
+        if (Math.abs(mx - fromPos.x) < 70 && my >= PEG_TOP_Y-30 && my <= BASE_Y+50) return fromPeg;
+        var bestPeg = -1, bestDist = Infinity;
+        PEG_POSITIONS.forEach(function(pos, idx) {
             if (idx === fromPeg) return;
-            const dx = Math.abs(mx - pos.x);
-            if (dx < 60 && my >= PEG_TOP_Y - 30 && my <= BASE_Y + 50) {
+            var dx = Math.abs(mx - pos.x);
+            if (dx < 60 && my >= PEG_TOP_Y-30 && my <= BASE_Y+50) {
                 if (dx < bestDist) { bestDist = dx; bestPeg = idx; }
             }
         });
@@ -323,120 +184,98 @@
     }
 
     function getMousePos(e) {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        return {
-            x: (e.clientX - rect.left) * scaleX,
-            y: (e.clientY - rect.top) * scaleY
-        };
+        var rect = canvas.getBoundingClientRect();
+        var scaleX = canvas.width / rect.width;
+        var scaleY = canvas.height / rect.height;
+        return { x: (e.clientX - rect.left)*scaleX, y: (e.clientY - rect.top)*scaleY };
     }
 
     function handlePointerDown(e) {
-        if (gameWon) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const pos = getMousePos(e);
-        const disk = getDiskAtPosition(pos.x, pos.y);
+        log('👇 POINTERDOWN client=(' + e.clientX + ',' + e.clientY + ') pointerType=' + e.pointerType + ' button=' + e.button);
+        if (gameWon) { log('  (gameWon, ignore)'); return; }
+        e.preventDefault(); e.stopPropagation();
+        var pos = getMousePos(e);
+        log('  canvas pos=(' + pos.x.toFixed(1) + ',' + pos.y.toFixed(1) + ') pegs=' + JSON.stringify(pegs));
+        var disk = getDiskAtPosition(pos.x, pos.y);
         if (disk) {
+            log('  ✅ 抓到 disk size=' + disk.size + ' fromPeg=' + PEG_NAMES[disk.pegIndex] + ' diskIndex=' + disk.diskIndex);
             draggingDisk = {
-                size: disk.size,
-                fromPeg: disk.pegIndex,
-                diskIndex: disk.diskIndex,
-                originalX: PEG_POSITIONS[disk.pegIndex].x,
-                originalY: BASE_Y - 14 - disk.diskIndex * DISK_HEIGHT - DISK_HEIGHT/2,
-                startX: pos.x,
-                startY: pos.y,
-                currentX: pos.x,
-                currentY: pos.y
+                size: disk.size, fromPeg: disk.pegIndex, diskIndex: disk.diskIndex,
+                startX: pos.x, startY: pos.y, currentX: pos.x, currentY: pos.y
             };
-            messageDiv.textContent = `拖动 ${disk.size} 号盘 …`;
+            messageDiv.textContent = '拖动 ' + disk.size + ' 号盘 …';
             drawCanvas();
         } else {
-            messageDiv.textContent = '没抓到盘子，点准一点（只能拖每根柱子最上面的盘子）';
+            log('  ❌ 没抓到盘子');
+            messageDiv.textContent = '没抓到盘子';
         }
     }
 
     function handlePointerMove(e) {
         if (!draggingDisk) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const pos = getMousePos(e);
-        draggingDisk.currentX = pos.x;
-        draggingDisk.currentY = pos.y;
+        e.preventDefault(); e.stopPropagation();
+        var pos = getMousePos(e);
+        draggingDisk.currentX = pos.x; draggingDisk.currentY = pos.y;
         drawCanvas();
     }
 
     function handlePointerUp(e) {
-        if (!draggingDisk) return;
-        e.preventDefault();
-        e.stopPropagation();
+        log('👆 POINTERUP client=(' + e.clientX + ',' + e.clientY + ') pointerType=' + e.pointerType);
+        if (!draggingDisk) { log('  (no draggingDisk, ignore)'); return; }
+        e.preventDefault(); e.stopPropagation();
+        var pos = getMousePos(e);
+        var fromPeg = draggingDisk.fromPeg, size = draggingDisk.size;
+        var targetPeg = getNearestPeg(pos.x, pos.y, fromPeg);
+        log('  canvas pos=(' + pos.x.toFixed(1) + ',' + pos.y.toFixed(1) + ') fromPeg=' + PEG_NAMES[fromPeg] + ' size=' + size + ' targetPeg=' + (targetPeg===-1?'-1':PEG_NAMES[targetPeg]));
+        log('  pegs before: ' + JSON.stringify(pegs));
 
-        const pos = getMousePos(e);
-        const fromPeg = draggingDisk.fromPeg;
-        const size = draggingDisk.size;
-        const targetPeg = getNearestPeg(pos.x, pos.y, fromPeg);
-
-        let success = false;
-
-        // ✅ 再次校验：targetPeg === fromPeg → 放回原处，不执行 pop/push
+        var success = false;
         if (targetPeg === fromPeg) {
+            log('  → 放回原处，不移动');
             messageDiv.textContent = '放回原处';
         } else if (targetPeg !== -1) {
-            const targetTopSize = pegs[targetPeg].length > 0
-                ? pegs[targetPeg][pegs[targetPeg].length - 1]
-                : Infinity;
+            var targetTopSize = pegs[targetPeg].length > 0 ? pegs[targetPeg][pegs[targetPeg].length-1] : Infinity;
+            log('  targetTopSize=' + targetTopSize + ' size=' + size + ' → ' + (size <= targetTopSize ? '可以放' : '不能放'));
             if (size <= targetTopSize) {
                 pegs[fromPeg].pop();
                 pegs[targetPeg].push(size);
-                moves++;
-                updateMoveDisplay();
-                success = true;
-                messageDiv.textContent = `移动 ${size} 号盘到 ${PEG_NAMES[targetPeg]}`;
-                console.log(`[Hanoi] move ${size}: ${PEG_NAMES[fromPeg]} → ${PEG_NAMES[targetPeg]}`);
+                moves++; updateMoveDisplay(); success = true;
+                messageDiv.textContent = '移动 ' + size + ' 号盘到 ' + PEG_NAMES[targetPeg];
+                log('  ✅ MOVED: ' + PEG_NAMES[fromPeg] + ' → ' + PEG_NAMES[targetPeg]);
             } else {
-                messageDiv.textContent = `不能把大盘子放到小盘子上`;
+                messageDiv.textContent = '不能把大盘子放到小盘子上';
             }
         } else {
             messageDiv.textContent = '未放在柱子上，盘子归位';
         }
 
+        log('  pegs after: ' + JSON.stringify(pegs));
         draggingDisk = null;
         drawCanvas();
         if (success && checkWin()) drawCanvas();
     }
 
     function handlePointerCancel(e) {
-        if (draggingDisk) {
-            draggingDisk = null;
-            drawCanvas();
-            messageDiv.textContent = '拖动取消';
-        }
-        if (e) { e.preventDefault && e.preventDefault(); }
+        log('❌ POINTERCANCEL pointerType=' + (e && e.pointerType));
+        if (draggingDisk) { draggingDisk = null; drawCanvas(); messageDiv.textContent = '拖动取消'; }
     }
 
     function handleWindowBlur() {
-        if (draggingDisk) {
-            draggingDisk = null;
-            drawCanvas();
-            messageDiv.textContent = '窗口失焦，拖动取消';
-        }
+        log('⚠️ WINDOW BLUR');
+        if (draggingDisk) { draggingDisk = null; drawCanvas(); messageDiv.textContent = '窗口失焦，拖动取消'; }
     }
 
     function resetGame() {
-        if (animationFrame) { cancelAnimationFrame(animationFrame); animationFrame = null; }
+        log('🔁 resetGame called');
         draggingDisk = null;
         initGame();
         drawCanvas();
     }
 
-    diskSlider.addEventListener('input', (e) => {
-        const val = parseInt(e.target.value, 10);
+    diskSlider.addEventListener('input', function(e) {
+        var val = parseInt(e.target.value, 10);
         diskCountLabel.textContent = val;
-        if (val !== NUM_DISKS) {
-            NUM_DISKS = val;
-            resetGame();
-        }
+        if (val !== NUM_DISKS) { log('📏 slider → ' + val); NUM_DISKS = val; resetGame(); }
     });
 
     canvas.addEventListener('pointerdown', handlePointerDown, { passive: false });
@@ -445,22 +284,11 @@
     window.addEventListener('pointercancel', handlePointerCancel, { passive: false });
     window.addEventListener('blur', handleWindowBlur);
 
-    window.addEventListener('beforeunload', (e) => {
-        if (moves > 0 && !gameWon) {
-            e.preventDefault();
-            e.returnValue = '游戏还没结束，确定要离开吗？';
-            return e.returnValue;
-        }
-    });
-
     document.getElementById('resetBtn').addEventListener('click', resetGame);
-    victoryCloseBtn.addEventListener('click', () => {
-        victoryOverlay.classList.remove('show');
-        resetGame();
-    });
 
     initGame();
     drawCanvas();
+    log('=== INIT DONE, ready ===');
 })();
 </script>
 </body>
