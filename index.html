@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汉诺塔 · 拖拽版 · 15盘适配</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            background: #f7f3e9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 16px;
+        }
+        .game-wrapper {
+            background: #e7dfd1;
+            border-radius: 48px 48px 32px 32px;
+            padding: 24px 32px 32px;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15), inset 0 0 0 1px #fff8ed;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            background: #fdfaf4;
+            border-radius: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            cursor: grab;
+            touch-action: none;
+        }
+        canvas:active {
+            cursor: grabbing;
+        }
+        .info-panel {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+            padding: 0 8px;
+            font-weight: 500;
+            color: #3e2c1b;
+            gap: 16px;
+        }
+        .move-counter {
+            background: #f0e7db;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 1.2rem;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
+            white-space: nowrap;
+        }
+        .move-counter span {
+            font-weight: 700;
+            color: #a5582c;
+            margin-left: 6px;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+        }
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f0e7db;
+            padding: 6px 18px;
+            border-radius: 40px;
+            white-space: nowrap;
+        }
+        .slider-group label {
+            font-size: 0.95rem;
+            color: #3e2c1b;
+        }
+        .slider-group input {
+            width: 130px;
+            cursor: pointer;
+            accent-color: #d98c4a;
+        }
+        .slider-group span {
+            font-weight: 700;
+            color: #a5582c;
+            min-width: 24px;
+            text-align: center;
+        }
+        button {
+            background: #d6c9b8;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 10px 22px;
+            border-radius: 40px;
+            color: #2c1e10;
+            cursor: pointer;
+            box-shadow: 0 2px 0 #b3a48f, 0 4px 8px rgba(0,0,0,0.06);
+            transition: all 0.08s ease;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 0 0 #b3a48f, 0 4px 8px rgba(0,0,0,0.06);
+        }
+        .message {
+            font-size: 1rem;
+            color: #7b5a3a;
+            text-align: center;
+            min-height: 28px;
+            padding: 4px 0;
+            margin-top: 6px;
+        }
+        /* 胜利大字覆盖层 */
+        .victory-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .victory-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .victory-text-1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #ffd93d;
+            text-shadow: 0 0 20px #ffb347, 0 0 40px #ff8c00;
+            text-align: center;
+            margin-bottom: 20px;
+            animation: bounce 1.5s infinite alternate;
+            letter-spacing: 2px;
+            line-height: 1.3;
+            padding: 0 20px;
+        }
+        .victory-text-2 {
+            font-size: 3rem;
+            font-weight: 900;
+            color: #ff6b6b;
+            text-shadow: 0 0 20px #ff4757, 0 0 40px #ff0000;
+            text-align: center;
+            animation: shake 0.5s infinite alternate;
+            letter-spacing: 2px;
+            line-height: 1.3;
+            padding: 0 20px;
+        }
+        .victory-close {
+            margin-top: 40px;
+            background: #fff;
+            color: #222;
+            padding: 12px 40px;
+            font-size: 1.4rem;
+            border-radius: 60px;
+            cursor: pointer;
+            pointer-events: auto;
+            border: none;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255,255,255,0.3);
+            transition: transform 0.1s;
+        }
+        .victory-close:active {
+            transform: scale(0.95);
+        }
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-15px); }
+        }
+        @keyframes shake {
+            0% { transform: rotate(-3deg) scale(1.02); }
+            100% { transform: rotate(3deg) scale(1.02); }
+        }
+    </style>
+</head>
+<body>
+<div class="game-wrapper">
+    <!-- 画布高度从400增加到500 -->
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+    <div class="info-panel">
+        <div class="move-counter">步数 <span id="moveCount">0</span></div>
+        <div class="controls">
+            <div class="slider-group">
+                <label>圆盘数</label>
+                <input type="range" id="diskSlider" min="1" max="15" value="5" step="1">
+                <span id="diskCountLabel">5</span>
+            </div>
+            <button id="resetBtn">⟲ 新一局</button>
+        </div>
+    </div>
+    <div class="message" id="message"></div>
+</div>
+
+<!-- 胜利覆盖层 -->
+<div id="victoryOverlay" class="victory-overlay">
+    <div class="victory-text-1">你小子竟然做出来了！</div>
+    <div class="victory-text-2">今天必须把你小子大卸八块！</div>
+    <button class="victory-close" id="victoryCloseBtn">再来一局</button>
+</div>
+
+<script>
+    (function() {
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const moveSpan = document.getElementById('moveCount');
+        const messageDiv = document.getElementById('message');
+        const diskSlider = document.getElementById('diskSlider');
+        const diskCountLabel = document.getElementById('diskCountLabel');
+        const victoryOverlay = document.getElementById('victoryOverlay');
+        const victoryCloseBtn = document.getElementById('victoryCloseBtn');
+
+        // 游戏配置
+        let NUM_DISKS = 5;            
+        const PEG_NAMES = ['A', 'B', 'C'];
+        // 底座 Y 坐标下移到 430
+        const BASE_Y = 430;            
+        const PEG_TOP_Y = 100;         
+        const PEG_WIDTH = 10;
+        // 圆盘厚度缩小到 18，适应15个盘
+        const DISK_HEIGHT = 18;        
+        const MIN_DISK_WIDTH = 40;
+        const MAX_DISK_WIDTH = 160;
+
+        // 柱子水平位置 (居中)
+        const PEG_POSITIONS = [
+            { x: 180, y: BASE_Y },
+            { x: 400, y: BASE_Y },
+            { x: 620, y: BASE_Y }
+        ];
+
+        // 游戏状态
+        let pegs = [[], [], []];            
+        let moves = 0;
+        let gameWon = false;
+
+        // 拖拽状态
+        let draggingDisk = null;            
+
+        let animationFrame = null;
+
+        // 明亮颜色
+        const BRIGHT_COLORS = [
+            '#FF6B6B', '#FFB347', '#FFD93D', '#6BCB77', '#4D96FF',
+            '#9B59B6', '#FF8FAB', '#00C9A7', '#F9A826', '#E76F51',
+            '#A66CFF', '#2E8B57', '#FF9F1C', '#1E90FF', '#FF69B4'
+        ];
+
+        function getDiskColor(size) {
+            return BRIGHT_COLORS[(size - 1) % BRIGHT_COLORS.length];
+        }
+
+        function getDiskWidth(size) {
+            const t = (size - 1) / (NUM_DISKS - 1 || 1);
+            return MIN_DISK_WIDTH + t * (MAX_DISK_WIDTH - MIN_DISK_WIDTH);
+        }
+
+        // 初始化游戏
+        function initGame() {
+            pegs = [[], [], []];
+            for (let i = NUM_DISKS; i >= 1; i--) {
+                pegs[0].push(i);
+            }
+            moves = 0;
+            gameWon = false;
+            draggingDisk = null;
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = null;
+            }
+            updateMoveDisplay();
+            messageDiv.textContent = '直接拖动圆盘到目标柱子';
+            drawCanvas();
+            victoryOverlay.classList.remove('show');
+        }
+
+        function updateMoveDisplay() {
+            moveSpan.textContent = moves;
+        }
+
+        // 检查胜利
+        function checkWin() {
+            if (pegs[2].length === NUM_DISKS) {
+                gameWon = true;
+                messageDiv.textContent = `🎉 恭喜！你用了 ${moves} 步完成！`;
+                victoryOverlay.classList.add('show');
+                return true;
+            }
+            return false;
+        }
+
+        // 绘制圆角矩形
+        function roundRect(x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+        }
+
+        // 绘制单个盘子
+        function drawDisk(x, y, width, color, isDragging = false) {
+            const height = DISK_HEIGHT;
+            const radius = height / 2;
+            ctx.save();
+            ctx.shadowColor = isDragging ? 'rgba(255, 200, 0, 0.8)' : 'rgba(0,0,0,0.2)';
+            ctx.shadowBlur = isDragging ? 20 : 8;
+            ctx.shadowOffsetY = isDragging ? 4 : 3;
+            // 盘子主体
+            ctx.fillStyle = color;
+            roundRect(x - width / 2, y - height / 2, width, height, radius);
+            ctx.fill();
+
+            // 高光
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+            ctx.lineWidth = 2;
+            roundRect(x - width / 2 + 2, y - height / 2 + 2, width - 4, height - 4, radius-1);
+            ctx.stroke();
+
+            // 内圈高光
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 1;
+            roundRect(x - width / 2 + 4, y - height / 2 + 4, width - 8, height - 8, radius-2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // 绘制场景
+        function drawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 地板阴影
+            ctx.fillStyle = '#e3d7c4';
+            ctx.beginPath();
+            ctx.ellipse(400, 480, 380, 28, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 绘制柱子
+            PEG_POSITIONS.forEach((pos, index) => {
+                // 阴影
+                ctx.fillStyle = '#b09a7a';
+                ctx.shadowColor = 'rgba(0,0,0,0.15)';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+                roundRect(pos.x - PEG_WIDTH/2, PEG_TOP_Y, PEG_WIDTH, BASE_Y - PEG_TOP_Y, 4);
+                ctx.fill();
+
+                ctx.shadowColor = 'transparent';
+                // 柱子主体
+                ctx.fillStyle = '#8b7355';
+                roundRect(pos.x - PEG_WIDTH/2, PEG_TOP_Y, PEG_WIDTH, BASE_Y - PEG_TOP_Y, 4);
+                ctx.fill();
+
+                // 高光
+                ctx.fillStyle = '#a58e73';
+                roundRect(pos.x - PEG_WIDTH/2 + 2, PEG_TOP_Y + 2, PEG_WIDTH - 4, BASE_Y - PEG_TOP_Y - 4, 3);
+                ctx.fill();
+
+                // 底座
+                ctx.fillStyle = '#ac8f6e';
+                ctx.shadowBlur = 12;
+                ctx.shadowOffsetY = 4;
+                ctx.beginPath();
+                ctx.ellipse(pos.x, BASE_Y + 2, 54, 12, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 柱顶圆球
+                ctx.shadowBlur = 6;
+                ctx.shadowOffsetY = 1;
+                ctx.fillStyle = '#c9b39b';
+                ctx.beginPath();
+                ctx.arc(pos.x, PEG_TOP_Y - 4, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowColor = 'transparent';
+
+                // 柱子名字
+                ctx.font = 'bold 20px "Segoe UI", Roboto, sans-serif';
+                ctx.fillStyle = '#4f3d2b';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetY = 0;
+                ctx.textAlign = 'center';
+                ctx.fillText(PEG_NAMES[index], pos.x, BASE_Y + 58);
+            });
+
+            // 绘制所有盘子
+            pegs.forEach((pegDisks, pegIndex) => {
+                const pegX = PEG_POSITIONS[pegIndex].x;
+                pegDisks.forEach((size, diskIndex) => {
+                    // 如果正在拖拽这个盘子，跳过绘制（单独绘制）
+                    if (draggingDisk && draggingDisk.fromPeg === pegIndex && draggingDisk.diskIndex === diskIndex) {
+                        return;
+                    }
+                    const y = BASE_Y - 14 - diskIndex * DISK_HEIGHT - DISK_HEIGHT/2;
+                    const width = getDiskWidth(size);
+                    const color = getDiskColor(size);
+                    drawDisk(pegX, y, width, color, false);
+                });
+            });
+
+            // 绘制拖拽中的盘子（在最上层，跟随鼠标）
+            if (draggingDisk) {
+                const disk = draggingDisk;
+                const width = getDiskWidth(disk.size);
+                const color = getDiskColor(disk.size);
+                // 直接使用鼠标坐标
+                drawDisk(disk.currentX, disk.currentY, width, color, true);
+            }
+        }
+
+        // 判断鼠标是否在盘子上
+        function isPointInDisk(mx, my, pegIndex, diskIndex) {
+            const pegX = PEG_POSITIONS[pegIndex].x;
+            const size = pegs[pegIndex][diskIndex];
+            const y = BASE_Y - 14 - diskIndex * DISK_HEIGHT - DISK_HEIGHT/2;
+            const width = getDiskWidth(size);
+            const height = DISK_HEIGHT;
+            // 矩形检测
+            return mx >= pegX - width/2 - 5 && mx <= pegX + width/2 + 5 &&
+                   my >= y - height/2 - 5 && my <= y + height/2 + 5;
+        }
+
+        // 获取鼠标下的可拖拽盘子（只能是每根柱子最上面的）
+        function getDiskAtPosition(mx, my) {
+            // 从最上面盘子开始检测
+            for (let p = 0; p < 3; p++) {
+                const pegDisks = pegs[p];
+                if (pegDisks.length === 0) continue;
+                const topIndex = pegDisks.length - 1; // 最上面的盘子
+                if (isPointInDisk(mx, my, p, topIndex)) {
+                    return { pegIndex: p, diskIndex: topIndex, size: pegDisks[topIndex] };
+                }
+            }
+            return null;
+        }
+
+        // 找到最近的柱子（用于放置）
+        function getNearestPeg(mx, my) {
+            let minDist = 80;
+            let bestPeg = -1;
+            PEG_POSITIONS.forEach((pos, idx) => {
+                const dist = Math.abs(mx - pos.x);
+                if (dist < minDist) {
+                    minDist = dist;
+                    bestPeg = idx;
+                }
+            });
+            return bestPeg;
+        }
+
+        // 获取鼠标在canvas中的坐标
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+
+        // 鼠标/触摸按下
+        function handlePointerDown(e) {
+            if (gameWon) return;
+            e.preventDefault();
+            const pos = getMousePos(e);
+            const disk = getDiskAtPosition(pos.x, pos.y);
+            if (disk) {
+                // 开始拖拽
+                draggingDisk = {
+                    size: disk.size,
+                    fromPeg: disk.pegIndex,
+                    diskIndex: disk.diskIndex,
+                    originalX: PEG_POSITIONS[disk.pegIndex].x,
+                    originalY: BASE_Y - 14 - disk.diskIndex * DISK_HEIGHT - DISK_HEIGHT/2,
+                    startX: pos.x,
+                    startY: pos.y,
+                    currentX: pos.x,
+                    currentY: pos.y
+                };
+                messageDiv.textContent = `拖动 ${disk.size} 号盘 …`;
+                drawCanvas();
+            }
+        }
+
+        // 指针移动
+        function handlePointerMove(e) {
+            if (!draggingDisk) return;
+            e.preventDefault();
+            const pos = getMousePos(e);
+            draggingDisk.currentX = pos.x;
+            draggingDisk.currentY = pos.y;
+            drawCanvas();
+        }
+
+        // 指针释放
+        function handlePointerUp(e) {
+            if (!draggingDisk) return;
+            e.preventDefault();
+
+            const pos = getMousePos(e);
+            // 找到目标柱子
+            const targetPeg = getNearestPeg(pos.x, pos.y);
+            const fromPeg = draggingDisk.fromPeg;
+            const size = draggingDisk.size;
+
+            let success = false;
+
+            if (targetPeg !== -1 && targetPeg !== fromPeg) {
+                // 检查是否可放置
+                const targetTopSize = pegs[targetPeg].length > 0 ? pegs[targetPeg][pegs[targetPeg].length - 1] : Infinity;
+                if (size <= targetTopSize) {
+                    // 执行移动
+                    pegs[fromPeg].pop();
+                    pegs[targetPeg].push(size);
+                    moves++;
+                    updateMoveDisplay();
+                    success = true;
+                    messageDiv.textContent = `移动 ${size} 号盘到 ${PEG_NAMES[targetPeg]}`;
+                } else {
+                    messageDiv.textContent = `不能把大盘子放到小盘子上`;
+                }
+            } else if (targetPeg === fromPeg) {
+                messageDiv.textContent = '放回原处';
+            } else {
+                messageDiv.textContent = '未放在柱子上，盘子归位';
+            }
+
+            // 无论成功与否，清除拖拽状态
+            draggingDisk = null;
+            drawCanvas();
+
+            // 检查胜利
+            if (success && checkWin()) {
+                drawCanvas();
+            }
+        }
+
+        // 取消拖拽
+        function handlePointerCancel() {
+            if (draggingDisk) {
+                draggingDisk = null;
+                drawCanvas();
+                messageDiv.textContent = '拖动取消';
+            }
+        }
+
+        // 重置游戏
+        function resetGame() {
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = null;
+            }
+            draggingDisk = null;
+            initGame();
+            drawCanvas();
+        }
+
+        // 滑块事件
+        diskSlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value, 10);
+            diskCountLabel.textContent = val;
+            if (val !== NUM_DISKS) {
+                NUM_DISKS = val;
+                resetGame(); 
+            }
+        });
+
+        // 绑定事件
+        canvas.addEventListener('pointerdown', handlePointerDown);
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+        window.addEventListener('pointercancel', handlePointerCancel);
+
+        document.getElementById('resetBtn').addEventListener('click', resetGame);
+        victoryCloseBtn.addEventListener('click', () => {
+            victoryOverlay.classList.remove('show');
+            resetGame();
+        });
+
+        // 初始化
+        initGame();
+        drawCanvas();
+
+    })();
+</script>
+</body>
+</html>
