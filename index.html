@@ -2,10 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>汉诺塔 · 拖拽版 · 15盘适配（修复B柱问题）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>汉诺塔 · 拖拽版 · 15盘适配（GitHub Pages 修复）</title>
     <style>
-        * { box-sizing: border-box; user-select: none; }
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+        html, body {
+            overscroll-behavior: none;   /* ✅ 阻止下拉刷新 */
+            overflow: hidden;            /* ✅ 阻止页面滚动 */
+            height: 100%;
+        }
         body {
             background: #f7f3e9;
             display: flex; justify-content: center; align-items: center;
@@ -25,7 +30,9 @@
             width: 100%; max-width: 800px; height: auto;
             background: #fdfaf4; border-radius: 24px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            cursor: grab; touch-action: none;
+            cursor: grab;
+            touch-action: none;          /* ✅ 关键：阻止触摸滚动 */
+            -webkit-user-drag: none;
         }
         canvas:active { cursor: grabbing; }
         .info-panel {
@@ -96,7 +103,8 @@
 </head>
 <body>
 <div class="game-wrapper">
-    <canvas id="gameCanvas" width="800" height="500"></canvas>
+    <!-- ✅ inline touch-action 双重保险 -->
+    <canvas id="gameCanvas" width="800" height="500" style="touch-action: none;"></canvas>
     <div class="info-panel">
         <div class="move-counter">步数 <span id="moveCount">0</span></div>
         <div class="controls">
@@ -119,6 +127,9 @@
 
 <script>
 (function() {
+    // ✅ 打印初始化，方便在 GitHub Pages 的 Console 里确认是否被重新加载
+    console.log('[Hanoi] script loaded at', new Date().toISOString());
+
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const moveSpan = document.getElementById('moveCount');
@@ -162,6 +173,7 @@
     }
 
     function initGame() {
+        console.log('[Hanoi] initGame called at', new Date().toISOString());
         pegs = [[], [], []];
         for (let i = NUM_DISKS; i >= 1; i--) pegs[0].push(i);
         moves = 0;
@@ -271,13 +283,11 @@
 
         if (draggingDisk) {
             const disk = draggingDisk;
-            // 限制拖拽中盘子的 Y 在柱子范围内，避免视觉错位
             const clampedY = Math.max(PEG_TOP_Y - 10, Math.min(BASE_Y - 10, disk.currentY));
             drawDisk(disk.currentX, clampedY, getDiskWidth(disk.size), getDiskColor(disk.size), true);
         }
     }
 
-    // ✅ 修复1：检测范围放宽到 ±10
     function isPointInDisk(mx, my, pegIndex, diskIndex) {
         const pegX = PEG_POSITIONS[pegIndex].x;
         const size = pegs[pegIndex][diskIndex];
@@ -288,7 +298,6 @@
                my >= y - height/2 - 10 && my <= y + height/2 + 10;
     }
 
-    // ✅ 修复2：先检查最上面盘子，再检查下面（其实只能拖最上面，但检测顺序要稳）
     function getDiskAtPosition(mx, my) {
         for (let p = 0; p < 3; p++) {
             const pegDisks = pegs[p];
@@ -301,13 +310,11 @@
         return null;
     }
 
-    // ✅ 修复3：getNearestPeg 增加 Y 范围判断，避免拖到画布外误判
     function getNearestPeg(mx, my) {
         let bestPeg = -1;
         let bestDist = Infinity;
         PEG_POSITIONS.forEach((pos, idx) => {
             const dx = Math.abs(mx - pos.x);
-            // 水平 90 以内，且垂直在柱子范围内（允许稍宽）
             if (dx < 90 && my >= PEG_TOP_Y - 30 && my <= BASE_Y + 50) {
                 if (dx < bestDist) { bestDist = dx; bestPeg = idx; }
             }
@@ -327,7 +334,9 @@
 
     function handlePointerDown(e) {
         if (gameWon) return;
+        // ✅ 阻止事件冒泡，避免宿主页面干扰
         e.preventDefault();
+        e.stopPropagation();
         const pos = getMousePos(e);
         const disk = getDiskAtPosition(pos.x, pos.y);
         if (disk) {
@@ -345,7 +354,6 @@
             messageDiv.textContent = `拖动 ${disk.size} 号盘 …`;
             drawCanvas();
         } else {
-            // ✅ 修复4：给个提示，方便调试
             messageDiv.textContent = '没抓到盘子，点准一点（只能拖每根柱子最上面的盘子）';
         }
     }
@@ -353,6 +361,8 @@
     function handlePointerMove(e) {
         if (!draggingDisk) return;
         e.preventDefault();
+        // ✅ 阻止冒泡，避免触发宿主手势
+        e.stopPropagation();
         const pos = getMousePos(e);
         draggingDisk.currentX = pos.x;
         draggingDisk.currentY = pos.y;
@@ -362,6 +372,7 @@
     function handlePointerUp(e) {
         if (!draggingDisk) return;
         e.preventDefault();
+        e.stopPropagation();
 
         const pos = getMousePos(e);
         const targetPeg = getNearestPeg(pos.x, pos.y);
@@ -393,11 +404,21 @@
         if (success && checkWin()) drawCanvas();
     }
 
-    function handlePointerCancel() {
+    function handlePointerCancel(e) {
         if (draggingDisk) {
             draggingDisk = null;
             drawCanvas();
             messageDiv.textContent = '拖动取消';
+        }
+        if (e) { e.preventDefault && e.preventDefault(); }
+    }
+
+    // ✅ 兜底：指针离开窗口时也取消拖拽，避免 draggingDisk 卡住
+    function handleWindowBlur() {
+        if (draggingDisk) {
+            draggingDisk = null;
+            drawCanvas();
+            messageDiv.textContent = '窗口失焦，拖动取消';
         }
     }
 
@@ -417,10 +438,22 @@
         }
     });
 
-    canvas.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerCancel);
+    // ✅ passive: false 确保 preventDefault 生效
+    canvas.addEventListener('pointerdown', handlePointerDown, { passive: false });
+    window.addEventListener('pointermove', handlePointerMove, { passive: false });
+    window.addEventListener('pointerup', handlePointerUp, { passive: false });
+    window.addEventListener('pointercancel', handlePointerCancel, { passive: false });
+    window.addEventListener('blur', handleWindowBlur);
+
+    // ✅ 防止页面被意外刷新（可选，会弹确认框）
+    window.addEventListener('beforeunload', (e) => {
+        // 只在游戏进行中（有移动过）时提示，避免每次关闭都弹
+        if (moves > 0 && !gameWon) {
+            e.preventDefault();
+            e.returnValue = '游戏还没结束，确定要离开吗？';
+            return e.returnValue;
+        }
+    });
 
     document.getElementById('resetBtn').addEventListener('click', resetGame);
     victoryCloseBtn.addEventListener('click', () => {
