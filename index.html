@@ -3,14 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>汉诺塔 · 拖拽版 · 15盘适配（GitHub Pages 修复）</title>
+    <title>汉诺塔 · 拖拽版 · 15盘适配（修复B柱误判）</title>
     <style>
         * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-        html, body {
-            overscroll-behavior: none;   /* ✅ 阻止下拉刷新 */
-            overflow: hidden;            /* ✅ 阻止页面滚动 */
-            height: 100%;
-        }
+        html, body { overscroll-behavior: none; overflow: hidden; height: 100%; }
         body {
             background: #f7f3e9;
             display: flex; justify-content: center; align-items: center;
@@ -30,9 +26,7 @@
             width: 100%; max-width: 800px; height: auto;
             background: #fdfaf4; border-radius: 24px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            cursor: grab;
-            touch-action: none;          /* ✅ 关键：阻止触摸滚动 */
-            -webkit-user-drag: none;
+            cursor: grab; touch-action: none; -webkit-user-drag: none;
         }
         canvas:active { cursor: grabbing; }
         .info-panel {
@@ -103,7 +97,6 @@
 </head>
 <body>
 <div class="game-wrapper">
-    <!-- ✅ inline touch-action 双重保险 -->
     <canvas id="gameCanvas" width="800" height="500" style="touch-action: none;"></canvas>
     <div class="info-panel">
         <div class="move-counter">步数 <span id="moveCount">0</span></div>
@@ -127,7 +120,6 @@
 
 <script>
 (function() {
-    // ✅ 打印初始化，方便在 GitHub Pages 的 Console 里确认是否被重新加载
     console.log('[Hanoi] script loaded at', new Date().toISOString());
 
     const canvas = document.getElementById('gameCanvas');
@@ -310,12 +302,20 @@
         return null;
     }
 
-    function getNearestPeg(mx, my) {
+    // ✅ 核心修复：优先判断“放回原柱子”，其他柱子阈值 60px
+    function getNearestPeg(mx, my, fromPeg) {
+        // 1. 先判断是否还在原柱子附近（水平 70px 内）
+        const fromPos = PEG_POSITIONS[fromPeg];
+        if (Math.abs(mx - fromPos.x) < 70 && my >= PEG_TOP_Y - 30 && my <= BASE_Y + 50) {
+            return fromPeg;
+        }
+        // 2. 再找其他柱子，阈值 60px
         let bestPeg = -1;
         let bestDist = Infinity;
         PEG_POSITIONS.forEach((pos, idx) => {
+            if (idx === fromPeg) return;
             const dx = Math.abs(mx - pos.x);
-            if (dx < 90 && my >= PEG_TOP_Y - 30 && my <= BASE_Y + 50) {
+            if (dx < 60 && my >= PEG_TOP_Y - 30 && my <= BASE_Y + 50) {
                 if (dx < bestDist) { bestDist = dx; bestPeg = idx; }
             }
         });
@@ -334,7 +334,6 @@
 
     function handlePointerDown(e) {
         if (gameWon) return;
-        // ✅ 阻止事件冒泡，避免宿主页面干扰
         e.preventDefault();
         e.stopPropagation();
         const pos = getMousePos(e);
@@ -361,7 +360,6 @@
     function handlePointerMove(e) {
         if (!draggingDisk) return;
         e.preventDefault();
-        // ✅ 阻止冒泡，避免触发宿主手势
         e.stopPropagation();
         const pos = getMousePos(e);
         draggingDisk.currentX = pos.x;
@@ -375,14 +373,19 @@
         e.stopPropagation();
 
         const pos = getMousePos(e);
-        const targetPeg = getNearestPeg(pos.x, pos.y);
         const fromPeg = draggingDisk.fromPeg;
         const size = draggingDisk.size;
+        const targetPeg = getNearestPeg(pos.x, pos.y, fromPeg);
 
         let success = false;
 
-        if (targetPeg !== -1 && targetPeg !== fromPeg) {
-            const targetTopSize = pegs[targetPeg].length > 0 ? pegs[targetPeg][pegs[targetPeg].length - 1] : Infinity;
+        // ✅ 再次校验：targetPeg === fromPeg → 放回原处，不执行 pop/push
+        if (targetPeg === fromPeg) {
+            messageDiv.textContent = '放回原处';
+        } else if (targetPeg !== -1) {
+            const targetTopSize = pegs[targetPeg].length > 0
+                ? pegs[targetPeg][pegs[targetPeg].length - 1]
+                : Infinity;
             if (size <= targetTopSize) {
                 pegs[fromPeg].pop();
                 pegs[targetPeg].push(size);
@@ -390,11 +393,10 @@
                 updateMoveDisplay();
                 success = true;
                 messageDiv.textContent = `移动 ${size} 号盘到 ${PEG_NAMES[targetPeg]}`;
+                console.log(`[Hanoi] move ${size}: ${PEG_NAMES[fromPeg]} → ${PEG_NAMES[targetPeg]}`);
             } else {
                 messageDiv.textContent = `不能把大盘子放到小盘子上`;
             }
-        } else if (targetPeg === fromPeg) {
-            messageDiv.textContent = '放回原处';
         } else {
             messageDiv.textContent = '未放在柱子上，盘子归位';
         }
@@ -413,7 +415,6 @@
         if (e) { e.preventDefault && e.preventDefault(); }
     }
 
-    // ✅ 兜底：指针离开窗口时也取消拖拽，避免 draggingDisk 卡住
     function handleWindowBlur() {
         if (draggingDisk) {
             draggingDisk = null;
@@ -438,16 +439,13 @@
         }
     });
 
-    // ✅ passive: false 确保 preventDefault 生效
     canvas.addEventListener('pointerdown', handlePointerDown, { passive: false });
     window.addEventListener('pointermove', handlePointerMove, { passive: false });
     window.addEventListener('pointerup', handlePointerUp, { passive: false });
     window.addEventListener('pointercancel', handlePointerCancel, { passive: false });
     window.addEventListener('blur', handleWindowBlur);
 
-    // ✅ 防止页面被意外刷新（可选，会弹确认框）
     window.addEventListener('beforeunload', (e) => {
-        // 只在游戏进行中（有移动过）时提示，避免每次关闭都弹
         if (moves > 0 && !gameWon) {
             e.preventDefault();
             e.returnValue = '游戏还没结束，确定要离开吗？';
