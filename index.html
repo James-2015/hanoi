@@ -3,22 +3,63 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>汉诺塔 · 诊断版</title>
+<title>汉诺塔 · 拖拽版 · 通关大字 + 诊断日志</title>
 <style>
-* { box-sizing: border-box; user-select: none; }
+* { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
 html, body { overscroll-behavior: none; overflow: hidden; height: 100%; }
-body { background: #f7f3e9; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 16px; }
-.game-wrapper { background: #e7dfd1; border-radius: 48px 48px 32px 32px; padding: 24px 32px 32px; box-shadow: 0 12px 24px rgba(0,0,0,0.15); }
-canvas { display: block; margin: 0 auto; width: 100%; max-width: 800px; height: auto; background: #fdfaf4; border-radius: 24px; cursor: grab; touch-action: none; -webkit-user-drag: none; }
+body { background: #f7f3e9; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; margin: 0; padding: 16px; }
+.game-wrapper { background: #e7dfd1; border-radius: 48px 48px 32px 32px; padding: 24px 32px 32px; box-shadow: 0 12px 24px rgba(0,0,0,0.15), inset 0 0 0 1px #fff8ed; position: relative; }
+canvas { display: block; margin: 0 auto; width: 100%; max-width: 800px; height: auto; background: #fdfaf4; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); cursor: grab; touch-action: none; -webkit-user-drag: none; }
+canvas:active { cursor: grabbing; }
 .info-panel { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-top: 18px; padding: 0 8px; font-weight: 500; color: #3e2c1b; gap: 16px; }
-.move-counter { background: #f0e7db; padding: 8px 20px; border-radius: 40px; font-size: 1.2rem; }
+.move-counter { background: #f0e7db; padding: 8px 20px; border-radius: 40px; font-size: 1.2rem; box-shadow: inset 0 2px 4px rgba(0,0,0,0.04); white-space: nowrap; }
 .move-counter span { font-weight: 700; color: #a5582c; margin-left: 6px; }
-.slider-group { display: flex; align-items: center; gap: 10px; background: #f0e7db; padding: 6px 18px; border-radius: 40px; }
-.slider-group input { width: 130px; accent-color: #d98c4a; }
+.controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.slider-group { display: flex; align-items: center; gap: 10px; background: #f0e7db; padding: 6px 18px; border-radius: 40px; white-space: nowrap; }
+.slider-group label { font-size: 0.95rem; color: #3e2c1b; }
+.slider-group input { width: 130px; cursor: pointer; accent-color: #d98c4a; }
 .slider-group span { font-weight: 700; color: #a5582c; min-width: 24px; text-align: center; }
-button { background: #d6c9b8; border: none; font-size: 1rem; font-weight: 600; padding: 10px 22px; border-radius: 40px; color: #2c1e10; cursor: pointer; box-shadow: 0 2px 0 #b3a48f; }
+button { background: #d6c9b8; border: none; font-size: 1rem; font-weight: 600; padding: 10px 22px; border-radius: 40px; color: #2c1e10; cursor: pointer; box-shadow: 0 2px 0 #b3a48f, 0 4px 8px rgba(0,0,0,0.06); transition: all 0.08s ease; letter-spacing: 0.3px; white-space: nowrap; }
+button:active { transform: translateY(2px); box-shadow: 0 0 0 #b3a48f, 0 4px 8px rgba(0,0,0,0.06); }
 .message { font-size: 1rem; color: #7b5a3a; text-align: center; min-height: 28px; padding: 4px 0; margin-top: 6px; }
 .debug-log { background: #111; color: #0f0; font-family: monospace; font-size: 11px; padding: 10px; margin-top: 12px; border-radius: 8px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+
+/* 通关覆盖层 */
+.victory-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 1000; pointer-events: none; opacity: 0; transition: opacity 0.4s ease;
+}
+.victory-overlay.show { opacity: 1; pointer-events: auto; }
+.victory-text-1 {
+    font-size: 3.5rem; font-weight: 900; color: #ffd93d;
+    text-shadow: 0 0 20px #ffb347, 0 0 40px #ff8c00;
+    text-align: center; margin-bottom: 20px;
+    animation: bounce 1.5s infinite alternate;
+    letter-spacing: 2px; line-height: 1.3; padding: 0 20px;
+}
+.victory-text-2 {
+    font-size: 3rem; font-weight: 900; color: #ff6b6b;
+    text-shadow: 0 0 20px #ff4757, 0 0 40px #ff0000;
+    text-align: center; animation: shake 0.5s infinite alternate;
+    letter-spacing: 2px; line-height: 1.3; padding: 0 20px;
+}
+.victory-close {
+    margin-top: 40px; background: #fff; color: #222;
+    padding: 12px 40px; font-size: 1.4rem; border-radius: 60px;
+    cursor: pointer; pointer-events: auto; border: none; font-weight: bold;
+    box-shadow: 0 4px 15px rgba(255,255,255,0.3); transition: transform 0.1s;
+}
+.victory-close:active { transform: scale(0.95); }
+@keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-15px); } }
+@keyframes shake { 0% { transform: rotate(-3deg) scale(1.02); } 100% { transform: rotate(3deg) scale(1.02); } }
+
+@media (max-width: 600px) {
+    .victory-text-1 { font-size: 2.2rem; }
+    .victory-text-2 { font-size: 1.8rem; }
+    .victory-close { font-size: 1.1rem; padding: 10px 30px; }
+}
 </style>
 </head>
 <body>
@@ -26,20 +67,28 @@ button { background: #d6c9b8; border: none; font-size: 1rem; font-weight: 600; p
     <canvas id="gameCanvas" width="800" height="500" style="touch-action: none;"></canvas>
     <div class="info-panel">
         <div class="move-counter">步数 <span id="moveCount">0</span></div>
-        <div class="slider-group">
-            <label>圆盘数</label>
-            <input type="range" id="diskSlider" min="1" max="15" value="5" step="1">
-            <span id="diskCountLabel">5</span>
+        <div class="controls">
+            <div class="slider-group">
+                <label>圆盘数</label>
+                <input type="range" id="diskSlider" min="1" max="15" value="5" step="1">
+                <span id="diskCountLabel">5</span>
+            </div>
+            <button id="resetBtn">⟲ 新一局</button>
         </div>
-        <button id="resetBtn">⟲ 新一局</button>
     </div>
     <div class="message" id="message"></div>
     <div class="debug-log" id="debugLog"></div>
 </div>
 
+<!-- ✅ 通关大字覆盖层 -->
+<div id="victoryOverlay" class="victory-overlay">
+    <div class="victory-text-1">你小子竟然做出来了！</div>
+    <div class="victory-text-2">今天必须把你小子大卸八块！</div>
+    <button class="victory-close" id="victoryCloseBtn">再来一局</button>
+</div>
+
 <script>
 (function() {
-    // ===== 调试日志 =====
     var debugLog = document.getElementById('debugLog');
     function log(msg) {
         var line = '[' + new Date().toISOString().slice(11,23) + '] ' + msg;
@@ -51,10 +100,6 @@ button { background: #d6c9b8; border: none; font-size: 1rem; font-weight: 600; p
     log('=== SCRIPT LOADED ===');
     window.addEventListener('error', function(e) { log('❌ WINDOW ERROR: ' + e.message + ' @ ' + e.filename + ':' + e.lineno); });
     window.addEventListener('unhandledrejection', function(e) { log('❌ UNHANDLED REJECTION: ' + e.reason); });
-    window.addEventListener('beforeunload', function() { log('⚠️ BEFOREUNLOAD — 页面即将离开'); });
-    window.addEventListener('pagehide', function() { log('⚠️ PAGEHIDE — 页面隐藏'); });
-    window.addEventListener('pageshow', function(e) { log('ℹ️ PAGESHOW — persisted=' + e.persisted); });
-    document.addEventListener('visibilitychange', function() { log('ℹ️ VISIBILITY: ' + document.visibilityState); });
 
     var canvas = document.getElementById('gameCanvas');
     var ctx = canvas.getContext('2d');
@@ -62,6 +107,8 @@ button { background: #d6c9b8; border: none; font-size: 1rem; font-weight: 600; p
     var messageDiv = document.getElementById('message');
     var diskSlider = document.getElementById('diskSlider');
     var diskCountLabel = document.getElementById('diskCountLabel');
+    var victoryOverlay = document.getElementById('victoryOverlay');
+    var victoryCloseBtn = document.getElementById('victoryCloseBtn');
 
     var NUM_DISKS = 5;
     var PEG_NAMES = ['A', 'B', 'C'];
@@ -81,12 +128,13 @@ button { background: #d6c9b8; border: none; font-size: 1rem; font-weight: 600; p
 
     function initGame() {
         initCount++;
-        log('🔄 initGame #' + initCount + ' — pegs before: ' + JSON.stringify(pegs));
+        log('🔄 initGame #' + initCount);
         pegs = [[],[],[]];
         for (var i = NUM_DISKS; i >= 1; i--) pegs[0].push(i);
         moves = 0; gameWon = false; draggingDisk = null;
         updateMoveDisplay();
         messageDiv.textContent = '直接拖动圆盘到目标柱子';
+        victoryOverlay.classList.remove('show');
         drawCanvas();
     }
 
@@ -96,6 +144,7 @@ button { background: #d6c9b8; border: none; font-size: 1rem; font-weight: 600; p
         if (pegs[2].length === NUM_DISKS) {
             gameWon = true;
             messageDiv.textContent = '🎉 恭喜！你用了 ' + moves + ' 步完成！';
+            victoryOverlay.classList.add('show');
             log('🏆 WIN');
             return true;
         }
@@ -191,18 +240,14 @@ button { background: #d6c9b8; border: none; font-size: 1rem; font-weight: 600; p
     }
 
     function handlePointerDown(e) {
-        log('👇 POINTERDOWN client=(' + e.clientX + ',' + e.clientY + ') pointerType=' + e.pointerType + ' button=' + e.button);
-        if (gameWon) { log('  (gameWon, ignore)'); return; }
+        log('👇 POINTERDOWN (' + e.clientX + ',' + e.clientY + ') type=' + e.pointerType);
+        if (gameWon) { log('  (gameWon)'); return; }
         e.preventDefault(); e.stopPropagation();
         var pos = getMousePos(e);
-        log('  canvas pos=(' + pos.x.toFixed(1) + ',' + pos.y.toFixed(1) + ') pegs=' + JSON.stringify(pegs));
         var disk = getDiskAtPosition(pos.x, pos.y);
         if (disk) {
-            log('  ✅ 抓到 disk size=' + disk.size + ' fromPeg=' + PEG_NAMES[disk.pegIndex] + ' diskIndex=' + disk.diskIndex);
-            draggingDisk = {
-                size: disk.size, fromPeg: disk.pegIndex, diskIndex: disk.diskIndex,
-                startX: pos.x, startY: pos.y, currentX: pos.x, currentY: pos.y
-            };
+            log('  ✅ 抓到 disk ' + disk.size + ' from ' + PEG_NAMES[disk.pegIndex] + ' index=' + disk.diskIndex);
+            draggingDisk = { size: disk.size, fromPeg: disk.pegIndex, diskIndex: disk.diskIndex, startX: pos.x, startY: pos.y, currentX: pos.x, currentY: pos.y };
             messageDiv.textContent = '拖动 ' + disk.size + ' 号盘 …';
             drawCanvas();
         } else {
@@ -220,28 +265,28 @@ button { background: #d6c9b8; border: none; font-size: 1rem; font-weight: 600; p
     }
 
     function handlePointerUp(e) {
-        log('👆 POINTERUP client=(' + e.clientX + ',' + e.clientY + ') pointerType=' + e.pointerType);
-        if (!draggingDisk) { log('  (no draggingDisk, ignore)'); return; }
+        log('👆 POINTERUP (' + e.clientX + ',' + e.clientY + ') type=' + e.pointerType);
+        if (!draggingDisk) { log('  (no drag)'); return; }
         e.preventDefault(); e.stopPropagation();
         var pos = getMousePos(e);
         var fromPeg = draggingDisk.fromPeg, size = draggingDisk.size;
         var targetPeg = getNearestPeg(pos.x, pos.y, fromPeg);
-        log('  canvas pos=(' + pos.x.toFixed(1) + ',' + pos.y.toFixed(1) + ') fromPeg=' + PEG_NAMES[fromPeg] + ' size=' + size + ' targetPeg=' + (targetPeg===-1?'-1':PEG_NAMES[targetPeg]));
+        log('  from=' + PEG_NAMES[fromPeg] + ' size=' + size + ' target=' + (targetPeg===-1?'-1':PEG_NAMES[targetPeg]));
         log('  pegs before: ' + JSON.stringify(pegs));
 
         var success = false;
         if (targetPeg === fromPeg) {
-            log('  → 放回原处，不移动');
+            log('  → 放回原处');
             messageDiv.textContent = '放回原处';
         } else if (targetPeg !== -1) {
             var targetTopSize = pegs[targetPeg].length > 0 ? pegs[targetPeg][pegs[targetPeg].length-1] : Infinity;
-            log('  targetTopSize=' + targetTopSize + ' size=' + size + ' → ' + (size <= targetTopSize ? '可以放' : '不能放'));
+            log('  targetTop=' + targetTopSize + ' size=' + size);
             if (size <= targetTopSize) {
                 pegs[fromPeg].pop();
                 pegs[targetPeg].push(size);
                 moves++; updateMoveDisplay(); success = true;
                 messageDiv.textContent = '移动 ' + size + ' 号盘到 ' + PEG_NAMES[targetPeg];
-                log('  ✅ MOVED: ' + PEG_NAMES[fromPeg] + ' → ' + PEG_NAMES[targetPeg]);
+                log('  ✅ MOVED ' + PEG_NAMES[fromPeg] + '→' + PEG_NAMES[targetPeg]);
             } else {
                 messageDiv.textContent = '不能把大盘子放到小盘子上';
             }
@@ -256,17 +301,17 @@ button { background: #d6c9b8; border: none; font-size: 1rem; font-weight: 600; p
     }
 
     function handlePointerCancel(e) {
-        log('❌ POINTERCANCEL pointerType=' + (e && e.pointerType));
+        log('❌ POINTERCANCEL type=' + (e && e.pointerType));
         if (draggingDisk) { draggingDisk = null; drawCanvas(); messageDiv.textContent = '拖动取消'; }
     }
 
     function handleWindowBlur() {
-        log('⚠️ WINDOW BLUR');
+        log('⚠️ BLUR');
         if (draggingDisk) { draggingDisk = null; drawCanvas(); messageDiv.textContent = '窗口失焦，拖动取消'; }
     }
 
     function resetGame() {
-        log('🔁 resetGame called');
+        log('🔁 resetGame');
         draggingDisk = null;
         initGame();
         drawCanvas();
@@ -285,10 +330,14 @@ button { background: #d6c9b8; border: none; font-size: 1rem; font-weight: 600; p
     window.addEventListener('blur', handleWindowBlur);
 
     document.getElementById('resetBtn').addEventListener('click', resetGame);
+    victoryCloseBtn.addEventListener('click', function() {
+        victoryOverlay.classList.remove('show');
+        resetGame();
+    });
 
     initGame();
     drawCanvas();
-    log('=== INIT DONE, ready ===');
+    log('=== INIT DONE ===');
 })();
 </script>
 </body>
